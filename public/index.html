@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Job Listings</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="page-header">
+        <p class="eyebrow">Wellfound &middot; RemoteOK &middot; We Work Remotely &middot; Y Combinator</p>
+        <h1>Job Listings</h1>
+        <p class="subtitle">Scraped, transformed, and upserted on a daily schedule.</p>
+      </header>
+
+      <section class="stats" id="stats" aria-label="Summary statistics">
+        <div class="stat">
+          <span class="stat-value" id="stat-total">&mdash;</span>
+          <span class="stat-label">Listings</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-companies">&mdash;</span>
+          <span class="stat-label">Companies</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-updated">&mdash;</span>
+          <span class="stat-label">Last updated</span>
+        </div>
+      </section>
+
+      <div class="search-row">
+        <input
+          type="search"
+          id="search"
+          class="search-input"
+          placeholder="Search by company, title, or location&hellip;"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="source-filters" id="source-filters" aria-label="Filter by source"></div>
+
+      <main>
+        <p class="result-count" id="result-count"></p>
+        <div class="card-grid" id="card-grid"></div>
+        <p class="empty-state" id="empty-state" hidden>No listings match your search.</p>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
