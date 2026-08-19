@@ -124,6 +124,13 @@ docker build -t job-scrapper .
 docker run --rm -e DATABASE_URL="postgres://user:password@host:5432/dbname" job-scrapper
 ```
 
+Or `docker-compose.yml` builds both the one-shot scraper and the persistent web server, each reading `DATABASE_URL` (Supabase or any hosted Postgres) straight from `.env` — no local Postgres container involved:
+
+```bash
+docker compose up --build -d          # starts the web server on :3000
+docker compose run --rm scraper       # runs one scrape
+```
+
 ### Tests
 
 ```bash
