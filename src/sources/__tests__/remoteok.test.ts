@@ -50,9 +50,26 @@ describe("remoteOkSource.parseCard", () => {
         location: "🌏 Worldwide",
         techStack: ["Python", "Remote"],
         postedDate: "2026-08-15",
+        employmentType: null,
+        experienceLevel: null,
         url: "https://remoteok.com/remote-jobs/senior-software-engineer-123",
       },
     ]);
+  });
+
+  it("classifies known employment-type and seniority tags out of the tech stack", () => {
+    const row = makeRow({
+      company: "Acme Corp",
+      title: "Senior Software Engineer",
+      dataUrl: "/remote-jobs/1",
+      tags: ["Python", "Senior", "Full Time", "Golang"],
+    });
+
+    const result = remoteOkSource.parseCard(row, new Date());
+
+    expect(result.listings[0]?.employmentType).toBe("Full-time");
+    expect(result.listings[0]?.experienceLevel).toBe("Senior");
+    expect(result.listings[0]?.techStack).toEqual(["Python", "Golang"]);
   });
 
   it("skips a row missing data-url", () => {

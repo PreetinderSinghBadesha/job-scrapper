@@ -52,9 +52,24 @@ describe("ycSource.parseCard", () => {
         location: "Remote (US)",
         techStack: ["Full stack"],
         postedDate: null,
+        employmentType: "Full-time",
+        experienceLevel: null,
         url: "https://www.workatastartup.com/jobs/103934",
       },
     ]);
+  });
+
+  it("normalizes the Intern employment-type detail", () => {
+    const card = makeCard({
+      company: "Acme",
+      title: "Software Engineering Intern",
+      jobHref: "/jobs/1",
+      details: ["Intern", "San Francisco, CA, US"],
+    });
+
+    const result = ycSource.parseCard(card, new Date());
+
+    expect(result.listings[0]?.employmentType).toBe("Internship");
   });
 
   it("skips a card missing the job link", () => {

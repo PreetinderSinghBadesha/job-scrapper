@@ -9,6 +9,8 @@ function makeCard(params: {
   company?: string;
   location?: string;
   postedDate?: string;
+  employmentType?: string;
+  extraCategoryPills?: string[];
 }): string {
   const titleHtml =
     params.title === undefined
@@ -29,6 +31,13 @@ function makeCard(params: {
       ? "<div>"
       : `<a class="listing-link--unlocked" href="${params.href}">`;
   const anchorClose = params.href === undefined ? "</div>" : "</a>";
+  const employmentTypePillHtml =
+    params.employmentType === undefined
+      ? ""
+      : `<span class="new-listing__categories__category">${params.employmentType}</span>`;
+  const extraPillsHtml = (params.extraCategoryPills ?? [])
+    .map((text) => `<span class="new-listing__categories__category new-listing__categories__category--featured">${text}</span>`)
+    .join("");
 
   return `
     <li class="new-listing-container feature">
@@ -39,6 +48,7 @@ function makeCard(params: {
         </div>
         ${companyHtml}
         ${locationHtml}
+        <div class="new-listing__categories">${extraPillsHtml}${employmentTypePillHtml}</div>
       ${anchorClose}
     </li>
   `;
@@ -65,9 +75,25 @@ describe("weWorkRemotelySource.parseCard", () => {
         location: "Remote",
         techStack: [],
         postedDate: "2026-08-18",
+        employmentType: null,
+        experienceLevel: null,
         url: "https://weworkremotely.com/remote-jobs/samsara-staff-software-engineer",
       },
     ]);
+  });
+
+  it("picks the employment-type pill out from among promotional badges and other categories", () => {
+    const card = makeCard({
+      title: "Staff Software Engineer",
+      href: "/remote-jobs/1",
+      company: "Samsara",
+      employmentType: "Full-Time",
+      extraCategoryPills: ["Featured", "Top 100"],
+    });
+
+    const result = weWorkRemotelySource.parseCard(card, REFERENCE_DATE);
+
+    expect(result.listings[0]?.employmentType).toBe("Full-time");
   });
 
   it("skips a card missing the job link", () => {

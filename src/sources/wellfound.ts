@@ -3,7 +3,7 @@ import type { Cheerio, CheerioAPI } from "cheerio";
 import type { Page } from "playwright";
 import type { TransformResult, JobListing } from "../types.js";
 import type { JobSource } from "./types.js";
-import { resolveUrl, parseWordyRelativeDate } from "./shared.js";
+import { resolveUrl, parseWordyRelativeDate, normalizeEmploymentType, bucketYearsOfExperience } from "./shared.js";
 
 const SOURCE_ID = "wellfound";
 const SITE_ORIGIN = "https://wellfound.com";
@@ -12,7 +12,9 @@ const JOB_LINK_SELECTOR = 'a[href^="/jobs/"]';
 const ROW_SELECTOR = '[class*="min-h-"]';
 const META_SELECTOR = '[class*="text-neutral-500"]';
 const DATE_SELECTOR = '[class*="text-dark-a"]';
+const EMPLOYMENT_TYPE_SELECTOR = ".mb-1.flex.items-start span";
 const CURRENCY_PATTERN = /[$₹£€]/;
+const EXPERIENCE_YEARS_PATTERN = /(\d+)\+?\s*years?\s+of\s+exp/i;
 const NAVIGATION_TIMEOUT_MS = 30000;
 
 function buildPageUrl(searchUrl: string, pageNumber: number): string {
@@ -57,6 +59,23 @@ function extractPostedDate(row: Cheerio<never>, referenceDate: Date): string | n
   return parseWordyRelativeDate(rawText, referenceDate);
 }
 
+function extractEmploymentType(row: Cheerio<never>): string | null {
+  const rawText = row.find(EMPLOYMENT_TYPE_SELECTOR).first().text().trim();
+  return normalizeEmploymentType(rawText);
+}
+
+function extractExperienceLevel(row: Cheerio<never>, $: CheerioAPI): string | null {
+  const metaBlocks = row.find(META_SELECTOR);
+  for (const element of metaBlocks.toArray()) {
+    const text = $(element).text().trim();
+    const match = EXPERIENCE_YEARS_PATTERN.exec(text);
+    if (match?.[1] !== undefined) {
+      return bucketYearsOfExperience(Number(match[1]));
+    }
+  }
+  return null;
+}
+
 function parseRow(
   anchorElement: never,
   $: CheerioAPI,
@@ -74,8 +93,20 @@ function parseRow(
   const row = anchor.closest(ROW_SELECTOR) as Cheerio<never>;
   const location = extractLocation(row, $);
   const postedDate = extractPostedDate(row, referenceDate);
+  const employmentType = extractEmploymentType(row);
+  const experienceLevel = extractExperienceLevel(row, $);
 
-  return { source: SOURCE_ID, company, title, location, techStack: [], postedDate, url };
+  return {
+    source: SOURCE_ID,
+    company,
+    title,
+    location,
+    techStack: [],
+    postedDate,
+    employmentType,
+    experienceLevel,
+    url,
+  };
 }
 
 function parseCard(html: string, referenceDate: Date): TransformResult {

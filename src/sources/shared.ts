@@ -61,3 +61,55 @@ export function parseShortRelativeDate(raw: string, referenceDate: Date = new Da
   const daysAgo = amount * (unitToDays[unit as string] ?? 0);
   return toDateOnlyString(new Date(referenceDate.getTime() - daysAgo * DAY_MS));
 }
+
+const EMPLOYMENT_TYPE_PATTERNS: readonly (readonly [RegExp, string])[] = [
+  [/intern/i, "Internship"],
+  [/freelance/i, "Freelance"],
+  [/contract/i, "Contract"],
+  [/part.?time/i, "Part-time"],
+  [/full.?time/i, "Full-time"],
+];
+
+/** Maps raw badge/tag text (e.g. "Full-time", "fulltime", "Contract") to a canonical label. */
+export function normalizeEmploymentType(raw: string | null | undefined): string | null {
+  if (!raw) {
+    return null;
+  }
+  for (const [pattern, label] of EMPLOYMENT_TYPE_PATTERNS) {
+    if (pattern.test(raw)) {
+      return label;
+    }
+  }
+  return null;
+}
+
+const EXPERIENCE_KEYWORD_PATTERNS: readonly (readonly [RegExp, string])[] = [
+  [/\b(lead|principal|staff)\b/i, "Lead"],
+  [/\b(senior|sr)\b/i, "Senior"],
+  [/\bmid.?level\b/i, "Mid level"],
+  [/\b(junior|jr|entry.?level|graduate|intern)\b/i, "Entry level"],
+];
+
+/** Maps a seniority keyword/tag (e.g. "senior", "junior") to a canonical experience bucket. */
+export function normalizeExperienceKeyword(raw: string): string | null {
+  for (const [pattern, label] of EXPERIENCE_KEYWORD_PATTERNS) {
+    if (pattern.test(raw)) {
+      return label;
+    }
+  }
+  return null;
+}
+
+/** Buckets a numeric years-of-experience requirement into the same labels as normalizeExperienceKeyword. */
+export function bucketYearsOfExperience(years: number): string {
+  if (years <= 1) {
+    return "Entry level";
+  }
+  if (years <= 4) {
+    return "Mid level";
+  }
+  if (years <= 8) {
+    return "Senior";
+  }
+  return "Lead";
+}

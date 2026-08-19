@@ -12,6 +12,8 @@ export interface JobListing {
   readonly location: string;
   readonly techStack: string[];
   readonly postedDate: string | null;
+  readonly employmentType: string | null;
+  readonly experienceLevel: string | null;
   readonly url: string;
 }
 

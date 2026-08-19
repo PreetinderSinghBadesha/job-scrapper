@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { parseShortRelativeDate, parseWordyRelativeDate, resolveUrl } from "../shared.js";
+import {
+  bucketYearsOfExperience,
+  normalizeEmploymentType,
+  normalizeExperienceKeyword,
+  parseShortRelativeDate,
+  parseWordyRelativeDate,
+  resolveUrl,
+} from "../shared.js";
 
 const REFERENCE_DATE = new Date("2026-08-19T00:00:00.000Z");
 
@@ -44,5 +51,52 @@ describe("resolveUrl", () => {
   it("returns null for missing or empty href", () => {
     expect(resolveUrl(undefined, "https://example.com")).toBeNull();
     expect(resolveUrl("", "https://example.com")).toBeNull();
+  });
+});
+
+describe("normalizeEmploymentType", () => {
+  it("recognizes common variants regardless of casing or separator", () => {
+    expect(normalizeEmploymentType("Full-time")).toBe("Full-time");
+    expect(normalizeEmploymentType("fulltime")).toBe("Full-time");
+    expect(normalizeEmploymentType("Part Time")).toBe("Part-time");
+    expect(normalizeEmploymentType("CONTRACT")).toBe("Contract");
+    expect(normalizeEmploymentType("Intern")).toBe("Internship");
+    expect(normalizeEmploymentType("Freelance")).toBe("Freelance");
+  });
+
+  it("returns null for unrecognized or empty text", () => {
+    expect(normalizeEmploymentType("Remote")).toBeNull();
+    expect(normalizeEmploymentType("")).toBeNull();
+    expect(normalizeEmploymentType(null)).toBeNull();
+    expect(normalizeEmploymentType(undefined)).toBeNull();
+  });
+});
+
+describe("normalizeExperienceKeyword", () => {
+  it("maps seniority keywords to canonical buckets", () => {
+    expect(normalizeExperienceKeyword("Senior")).toBe("Senior");
+    expect(normalizeExperienceKeyword("sr")).toBe("Senior");
+    expect(normalizeExperienceKeyword("Lead")).toBe("Lead");
+    expect(normalizeExperienceKeyword("Principal Engineer")).toBe("Lead");
+    expect(normalizeExperienceKeyword("Junior")).toBe("Entry level");
+    expect(normalizeExperienceKeyword("entry-level")).toBe("Entry level");
+    expect(normalizeExperienceKeyword("mid-level")).toBe("Mid level");
+  });
+
+  it("returns null for text with no seniority signal", () => {
+    expect(normalizeExperienceKeyword("Backend")).toBeNull();
+    expect(normalizeExperienceKeyword("")).toBeNull();
+  });
+});
+
+describe("bucketYearsOfExperience", () => {
+  it("buckets years into the same labels normalizeExperienceKeyword uses", () => {
+    expect(bucketYearsOfExperience(0)).toBe("Entry level");
+    expect(bucketYearsOfExperience(1)).toBe("Entry level");
+    expect(bucketYearsOfExperience(2)).toBe("Mid level");
+    expect(bucketYearsOfExperience(4)).toBe("Mid level");
+    expect(bucketYearsOfExperience(5)).toBe("Senior");
+    expect(bucketYearsOfExperience(8)).toBe("Senior");
+    expect(bucketYearsOfExperience(9)).toBe("Lead");
   });
 });

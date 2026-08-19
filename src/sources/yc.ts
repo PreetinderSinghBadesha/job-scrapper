@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import type { Page } from "playwright";
 import type { TransformResult, JobListing } from "../types.js";
 import type { JobSource } from "./types.js";
-import { resolveUrl } from "./shared.js";
+import { resolveUrl, normalizeEmploymentType } from "./shared.js";
 
 const SOURCE_ID = "yc";
 const SITE_ORIGIN = "https://www.workatastartup.com";
@@ -68,6 +68,7 @@ function parseCard(html: string): TransformResult {
   const detailSpans = $("p.job-details span")
     .toArray()
     .map((element) => $(element).text().trim());
+  const employmentType = normalizeEmploymentType(detailSpans[0]);
   const location = detailSpans[1] ?? "";
   const category = detailSpans[2];
   const techStack = category ? [category] : [];
@@ -79,6 +80,8 @@ function parseCard(html: string): TransformResult {
     location,
     techStack,
     postedDate: null,
+    employmentType,
+    experienceLevel: null,
     url,
   };
   return { listings: [listing], skippedCount: 0 };

@@ -35,6 +35,8 @@ describe("transformJobCards", () => {
                 location: "Remote",
                 techStack: [],
                 postedDate: null,
+                employmentType: null,
+                experienceLevel: null,
                 url: "https://example.com/1",
               },
             ],

@@ -9,11 +9,17 @@ function makeRow(params: {
   salary?: string;
   location?: string;
   postedDate?: string;
+  employmentType?: string;
+  experienceYears?: string;
 }): string {
+  const badgeHtml =
+    params.employmentType === undefined
+      ? ""
+      : `<span class="whitespace-nowrap rounded-lg bg-accent-yellow-100 px-2 py-1 text-[10px] font-semibold text-neutral-800">${params.employmentType}</span>`;
   const titleHtml =
     params.title === undefined
       ? ""
-      : `<a class="mr-2 text-sm font-semibold text-brand-burgandy hover:underline" href="${params.href ?? ""}">${params.title}</a>`;
+      : `<a class="mr-2 text-sm font-semibold text-brand-burgandy hover:underline" href="${params.href ?? ""}">${params.title}</a>${badgeHtml}`;
   const salaryHtml =
     params.salary === undefined
       ? ""
@@ -22,6 +28,10 @@ function makeRow(params: {
     params.location === undefined
       ? ""
       : `<div class="flex items-center text-neutral-500"><span class="pl-1 text-xs">${params.location}</span></div>`;
+  const experienceHtml =
+    params.experienceYears === undefined
+      ? ""
+      : `<div class="flex items-center text-neutral-500"><span class="pl-1 text-xs">${params.experienceYears} years of exp</span></div>`;
   const dateHtml =
     params.postedDate === undefined
       ? ""
@@ -31,7 +41,7 @@ function makeRow(params: {
     <div class="min-h-[50px] items-end justify-between rounded-2xl px-2 py-2 sm:flex">
       <div class="w-full pb-1 sm:pb-0">
         <div class="mb-1 flex items-start">${titleHtml}</div>
-        <div class="sm:flex sm:space-x-2">${salaryHtml}${locationHtml}</div>
+        <div class="sm:flex sm:space-x-2">${salaryHtml}${locationHtml}${experienceHtml}</div>
         ${dateHtml}
       </div>
     </div>
@@ -82,9 +92,31 @@ describe("wellfoundSource.parseCard", () => {
       location: "Remote • Santa Clara",
       techStack: [],
       postedDate: "2026-08-13",
+      employmentType: null,
+      experienceLevel: null,
       url: "https://wellfound.com/jobs/4579450-software-engineer",
     });
     expect(result.listings[1]?.postedDate).toBe("2026-08-19");
+  });
+
+  it("extracts and normalizes employment type and years of experience", () => {
+    const card = makeCard({
+      company: "Oklo",
+      rows: [
+        makeRow({
+          title: "Software Engineer",
+          href: "/jobs/1-software-engineer",
+          employmentType: "Full-time",
+          location: "Remote",
+          experienceYears: "5",
+        }),
+      ],
+    });
+
+    const result = wellfoundSource.parseCard(card, REFERENCE_DATE);
+
+    expect(result.listings[0]?.employmentType).toBe("Full-time");
+    expect(result.listings[0]?.experienceLevel).toBe("Senior");
   });
 
   it("ignores anchors that do not point to a job posting", () => {

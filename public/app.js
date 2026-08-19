@@ -2,22 +2,35 @@ const statTotal = document.getElementById("stat-total");
 const statCompanies = document.getElementById("stat-companies");
 const statUpdated = document.getElementById("stat-updated");
 const searchInput = document.getElementById("search");
+const freshnessSelect = document.getElementById("freshness-select");
+const sortSelect = document.getElementById("sort-select");
 const sourceFilters = document.getElementById("source-filters");
+const employmentTypeFilters = document.getElementById("employment-type-filters");
+const experienceLevelFilters = document.getElementById("experience-level-filters");
 const resultCount = document.getElementById("result-count");
 const cardGrid = document.getElementById("card-grid");
 const emptyState = document.getElementById("empty-state");
+const autoScrapeForm = document.getElementById("auto-scrape-form");
+const autoScrapeUrlInput = document.getElementById("auto-scrape-url");
+const autoScrapeSubmit = document.getElementById("auto-scrape-submit");
+const autoScrapeStatus = document.getElementById("auto-scrape-status");
+const knownSites = document.getElementById("known-sites");
+const knownSitesPills = document.getElementById("known-sites-pills");
 
 const SOURCE_LABELS = {
   wellfound: "Wellfound",
   remoteok: "RemoteOK",
   weworkremotely: "We Work Remotely",
   yc: "Y Combinator",
+  auto: "Auto-detected",
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 const relativeFormatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
 let selectedSource = "";
+let selectedEmploymentType = "";
+let selectedExperienceLevel = "";
 
 function sourceLabel(sourceId) {
   return SOURCE_LABELS[sourceId] ?? sourceId;
@@ -81,6 +94,18 @@ function buildCard(listing) {
     dateSpan.textContent = postedDate;
     meta.appendChild(dateSpan);
   }
+  if (listing.employmentType) {
+    const employmentSpan = document.createElement("span");
+    employmentSpan.className = "dot";
+    employmentSpan.textContent = listing.employmentType;
+    meta.appendChild(employmentSpan);
+  }
+  if (listing.experienceLevel) {
+    const experienceSpan = document.createElement("span");
+    experienceSpan.className = "dot";
+    experienceSpan.textContent = listing.experienceLevel;
+    meta.appendChild(experienceSpan);
+  }
   if (meta.childNodes.length > 0) {
     card.appendChild(meta);
   }
@@ -116,27 +141,30 @@ function renderListings(listings) {
   }
 }
 
-function buildSourcePill(label, count, value, isActive) {
+function buildFilterPill(label, count, isActive, onClick) {
   const pill = document.createElement("button");
   pill.type = "button";
   pill.className = "source-pill" + (isActive ? " active" : "");
   pill.textContent = count === null ? label : `${label} (${count.toLocaleString()})`;
-  pill.addEventListener("click", () => {
-    selectedSource = value;
-    loadListings(searchInput.value.trim());
-  });
+  pill.addEventListener("click", onClick);
   return pill;
 }
 
-function renderSourceFilters(bySource) {
-  sourceFilters.replaceChildren();
+function renderFilterRow(container, allLabel, entries, selectedValue, onSelect, labelFn) {
+  container.hidden = entries.length === 0;
+  if (entries.length === 0) {
+    return;
+  }
 
-  const totalCount = bySource.reduce((sum, entry) => sum + entry.total, 0);
-  sourceFilters.appendChild(buildSourcePill("All sources", totalCount, "", selectedSource === ""));
-
-  for (const entry of bySource) {
-    sourceFilters.appendChild(
-      buildSourcePill(sourceLabel(entry.source), entry.total, entry.source, selectedSource === entry.source),
+  container.replaceChildren();
+  const totalCount = entries.reduce((sum, entry) => sum + entry.total, 0);
+  container.appendChild(
+    buildFilterPill(allLabel, totalCount, selectedValue === "", () => onSelect("")),
+  );
+  for (const entry of entries) {
+    const value = entry.source ?? entry.value;
+    container.appendChild(
+      buildFilterPill(labelFn(entry), entry.total, selectedValue === value, () => onSelect(value)),
     );
   }
 }
@@ -145,7 +173,35 @@ function renderStats(summary) {
   statTotal.textContent = summary.totalListings.toLocaleString();
   statCompanies.textContent = summary.totalCompanies.toLocaleString();
   statUpdated.textContent = formatRelativeToNow(summary.lastUpdatedAt);
-  renderSourceFilters(summary.bySource);
+
+  renderFilterRow(sourceFilters, "All sources", summary.bySource, selectedSource, (value) => {
+    selectedSource = value;
+    loadListings(searchInput.value.trim());
+  }, (entry) => sourceLabel(entry.source));
+
+  renderFilterRow(
+    employmentTypeFilters,
+    "All types",
+    summary.byEmploymentType,
+    selectedEmploymentType,
+    (value) => {
+      selectedEmploymentType = value;
+      loadListings(searchInput.value.trim());
+    },
+    (entry) => entry.value,
+  );
+
+  renderFilterRow(
+    experienceLevelFilters,
+    "All levels",
+    summary.byExperienceLevel,
+    selectedExperienceLevel,
+    (value) => {
+      selectedExperienceLevel = value;
+      loadListings(searchInput.value.trim());
+    },
+    (entry) => entry.value,
+  );
 }
 
 async function loadListings(search) {
@@ -156,6 +212,16 @@ async function loadListings(search) {
   if (selectedSource) {
     url.searchParams.set("source", selectedSource);
   }
+  if (selectedEmploymentType) {
+    url.searchParams.set("employmentType", selectedEmploymentType);
+  }
+  if (selectedExperienceLevel) {
+    url.searchParams.set("experienceLevel", selectedExperienceLevel);
+  }
+  if (freshnessSelect.value) {
+    url.searchParams.set("postedWithinDays", freshnessSelect.value);
+  }
+  url.searchParams.set("sort", sortSelect.value);
 
   const response = await fetch(url);
   if (!response.ok) {
@@ -169,10 +235,106 @@ async function loadListings(search) {
   resultCount.textContent = `${data.total.toLocaleString()} result${data.total === 1 ? "" : "s"}`;
 }
 
+freshnessSelect.addEventListener("change", () => loadListings(searchInput.value.trim()));
+sortSelect.addEventListener("change", () => loadListings(searchInput.value.trim()));
+
 let debounceHandle;
 searchInput.addEventListener("input", () => {
   clearTimeout(debounceHandle);
   debounceHandle = setTimeout(() => loadListings(searchInput.value.trim()), 250);
 });
 
+function setAutoScrapeStatus(text, isError) {
+  autoScrapeStatus.textContent = text;
+  autoScrapeStatus.classList.toggle("error", Boolean(isError));
+}
+
+async function scrapeUrl(targetUrl) {
+  const response = await fetch("/api/auto-scrape", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: targetUrl }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error ?? "Scrape failed.");
+  }
+  return data;
+}
+
+function buildKnownSitePill(site) {
+  const pill = document.createElement("button");
+  pill.type = "button";
+  pill.className = "known-site-pill";
+  pill.title = `Re-scrape ${site.hostname} (no LLM call — selectors are already known)`;
+
+  const icon = document.createElement("span");
+  icon.className = "known-site-pill-icon";
+  icon.textContent = "↻";
+  icon.setAttribute("aria-hidden", "true");
+  pill.appendChild(icon);
+  pill.appendChild(document.createTextNode(site.hostname));
+
+  pill.addEventListener("click", async () => {
+    pill.disabled = true;
+    setAutoScrapeStatus(`Updating ${site.hostname}…`, false);
+    try {
+      const data = await scrapeUrl(site.searchUrl);
+      setAutoScrapeStatus(
+        `${site.hostname}: ${data.scraped} scraped, ${data.upserted} upserted, ${data.skipped} skipped.`,
+        false,
+      );
+      loadListings(searchInput.value.trim());
+    } catch (error) {
+      setAutoScrapeStatus(error instanceof Error ? error.message : "Update failed.", true);
+    } finally {
+      pill.disabled = false;
+    }
+  });
+
+  return pill;
+}
+
+async function loadKnownSites() {
+  const response = await fetch("/api/auto-sites");
+  if (!response.ok) {
+    return;
+  }
+  const data = await response.json();
+  const sites = data.sites ?? [];
+
+  knownSites.hidden = sites.length === 0;
+  knownSitesPills.replaceChildren();
+  for (const site of sites) {
+    knownSitesPills.appendChild(buildKnownSitePill(site));
+  }
+}
+
+autoScrapeForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const targetUrl = autoScrapeUrlInput.value.trim();
+  if (!targetUrl) {
+    return;
+  }
+
+  autoScrapeSubmit.disabled = true;
+  setAutoScrapeStatus("Scraping… this can take up to a minute the first time a site is seen.", false);
+
+  try {
+    const data = await scrapeUrl(targetUrl);
+    setAutoScrapeStatus(
+      `${data.scraped} scraped, ${data.upserted} upserted, ${data.skipped} skipped.`,
+      false,
+    );
+    autoScrapeUrlInput.value = "";
+    loadListings(searchInput.value.trim());
+    loadKnownSites();
+  } catch (error) {
+    setAutoScrapeStatus(error instanceof Error ? error.message : "Scrape failed.", true);
+  } finally {
+    autoScrapeSubmit.disabled = false;
+  }
+});
+
 loadListings("");
+loadKnownSites();

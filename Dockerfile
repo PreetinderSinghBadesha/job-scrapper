@@ -19,6 +19,7 @@ RUN npm ci --omit=dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/dist ./dist
+COPY public ./public
 
 RUN groupadd --system scraper && useradd --system --gid scraper --home-dir /app scraper \
     && chown -R scraper:scraper /app

@@ -29,6 +29,31 @@
         </div>
       </section>
 
+      <section class="auto-scrape" aria-label="Add or update a scraped site">
+        <h2 class="auto-scrape-title">Add a site</h2>
+        <p class="auto-scrape-hint">
+          Paste a job search results page from any site. An LLM figures out the selectors once; every
+          run after that is free.
+        </p>
+        <form class="auto-scrape-form" id="auto-scrape-form">
+          <input
+            type="url"
+            id="auto-scrape-url"
+            class="auto-scrape-input"
+            placeholder="https://example.com/jobs"
+            autocomplete="off"
+            required
+          />
+          <button type="submit" class="auto-scrape-submit" id="auto-scrape-submit">Scrape</button>
+        </form>
+        <p class="auto-scrape-status" id="auto-scrape-status"></p>
+
+        <div class="known-sites" id="known-sites" hidden>
+          <span class="known-sites-label">Update:</span>
+          <div class="known-sites-pills" id="known-sites-pills"></div>
+        </div>
+      </section>
+
       <div class="search-row">
         <input
           type="search"
@@ -37,9 +62,21 @@
           placeholder="Search by company, title, or location&hellip;"
           autocomplete="off"
         />
+        <select id="freshness-select" class="control-select" aria-label="Posted within">
+          <option value="">Any time</option>
+          <option value="7">Past week</option>
+          <option value="30">Past month</option>
+          <option value="90">Past 3 months</option>
+        </select>
+        <select id="sort-select" class="control-select" aria-label="Sort by">
+          <option value="posted">Newest posted</option>
+          <option value="scraped">Recently added</option>
+        </select>
       </div>
 
       <div class="source-filters" id="source-filters" aria-label="Filter by source"></div>
+      <div class="source-filters" id="employment-type-filters" aria-label="Filter by employment type" hidden></div>
+      <div class="source-filters" id="experience-level-filters" aria-label="Filter by experience level" hidden></div>
 
       <main>
         <p class="result-count" id="result-count"></p>

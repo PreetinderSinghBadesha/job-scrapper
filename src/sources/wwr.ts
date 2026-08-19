@@ -2,13 +2,18 @@ import * as cheerio from "cheerio";
 import type { Page } from "playwright";
 import type { TransformResult, JobListing } from "../types.js";
 import type { JobSource } from "./types.js";
-import { resolveUrl, parseShortRelativeDate } from "./shared.js";
+import { resolveUrl, parseShortRelativeDate, normalizeEmploymentType } from "./shared.js";
 
 const SOURCE_ID = "weworkremotely";
 const SITE_ORIGIN = "https://weworkremotely.com";
 const CARD_SELECTOR = "section.jobs li";
 const TITLE_SELECTOR = ".new-listing__header__title__text";
 const JOB_LINK_SELECTOR = 'a[href^="/remote-jobs/"]';
+// Plain (unmodified) category pills carry a mix of employment type, salary, and
+// region text; promotional badges ("Featured", "Top 100", "Boosted") use an
+// additional modifier class, so excluding those isolates the plain pills.
+const CATEGORY_PILL_SELECTOR = ".new-listing__categories__category";
+const CATEGORY_PILL_MODIFIER_PATTERN = /new-listing__categories__category--/;
 const NAVIGATION_TIMEOUT_MS = 30000;
 
 function buildPageUrl(searchUrl: string): string {
@@ -43,7 +48,29 @@ function parseCard(html: string, referenceDate: Date): TransformResult {
   const rawPostedDate = $(".new-listing__header__icons__date").first().text().trim();
   const postedDate = parseShortRelativeDate(rawPostedDate, referenceDate);
 
-  const listing: JobListing = { source: SOURCE_ID, company, title, location, techStack: [], postedDate, url };
+  let employmentType: string | null = null;
+  for (const element of $(CATEGORY_PILL_SELECTOR).toArray()) {
+    if (CATEGORY_PILL_MODIFIER_PATTERN.test($(element).attr("class") ?? "")) {
+      continue;
+    }
+    const asEmploymentType = normalizeEmploymentType($(element).text().trim());
+    if (asEmploymentType !== null) {
+      employmentType = asEmploymentType;
+      break;
+    }
+  }
+
+  const listing: JobListing = {
+    source: SOURCE_ID,
+    company,
+    title,
+    location,
+    techStack: [],
+    postedDate,
+    employmentType,
+    experienceLevel: null,
+    url,
+  };
   return { listings: [listing], skippedCount: 0 };
 }
 
