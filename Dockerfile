@@ -24,7 +24,9 @@ RUN npm ci --omit=dev \
 COPY --from=build /app/dist ./dist
 COPY public ./public
 
-RUN groupadd --system scraper && useradd --system --gid scraper --home-dir /app scraper \
+# Fixed UID/GID (not --system, which picks an arbitrary one) so bind-mounted host
+# directories like ./.cache can be chowned to a known, stable value.
+RUN groupadd --gid 1000 scraper && useradd --uid 1000 --gid scraper --home-dir /app --no-create-home scraper \
     && chown -R scraper:scraper /app
 USER scraper
 
