@@ -1,18 +1,23 @@
+x-app: &app
+  build: .
+  image: job-scrapper:latest
+  env_file: .env
+  volumes:
+    - ./.cache:/app/.cache
+
 services:
   # No local Postgres service — DATABASE_URL in .env points at Supabase (or any
   # hosted Postgres). Both services read it straight from .env via env_file.
+  #
+  # Both services share the same image tag, so `docker compose build` builds it
+  # once instead of producing two separate ~1GB images for what's otherwise
+  # identical code with a different CMD.
   scraper:
-    build: .
-    env_file: .env
-    volumes:
-      - ./.cache:/app/.cache
+    <<: *app
 
   web:
-    build: .
+    <<: *app
     command: ["node", "dist/server.js"]
     restart: unless-stopped
-    env_file: .env
-    volumes:
-      - ./.cache:/app/.cache
     ports:
       - "3000:3000"
